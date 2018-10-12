@@ -103,9 +103,11 @@ venv.bak/
 # mypy
 .mypy_cache/
 
+
 index.csv
 test.csv
 train.csv
 .idea/
 testImage/
 trainImage/
+
