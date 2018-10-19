@@ -8,4 +8,4 @@ python image_loader.py train.csv tranImage
 ```
 ## 2. Extract Feature
 On google Colaboratory:
-[View in Colaboratory](https://colab.research.google.com/github/jeness/CloudMark/blob/master/tf_hub_delf_module.ipynb)
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/jeness/CloudMark/blob/master/tf_hub_delf_module.ipynb)
