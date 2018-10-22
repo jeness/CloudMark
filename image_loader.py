@@ -1,3 +1,4 @@
+# edit from: https://www.kaggle.com/bellar/py3-small-image-downloader-w-progress-bar
 # -*- coding: utf-8 -*-
 
 # !/usr/bin/python
