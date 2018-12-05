@@ -42,5 +42,53 @@ tar -xf spark-2.4.0-bin-hadoop2.7.tgz
 sudo mv spark-2.4.0-bin-hadoop2.7.tgz
 ```
 the spark is now in `~/spark`
-# configuration(tbd)
+# configuration
 https://medium.com/ymedialabs-innovation/apache-spark-on-a-multi-node-cluster-b75967c8cb2b
+change hostnames of nodes in cluster to master, slave01, slave02
+ssh from master to slave can be done with non-root user
+## On cluster edit spark-env.sh
+```
+$ cd /usr/local/spark/conf
+$ cp spark-env.sh.template spark-env.sh
+
+
+$ sudo vim spark-env.sh
+//append the following:
+export SPARK_MASTER_HOST='<MASTER-IP>'
+export JAVA_HOME=<Path_of_JAVA_installation>
+```
+## On cluster edit file slaves
+Add Workers
+Edit the configuration file slaves in (/usr/local/spark/conf).
+```
+$ sudo vim slaves
+// And add the following entries.
+
+master
+slave01
+slave02
+```
+## Start Spark Cluster
+To start the spark cluster, run the following command on master.
+```
+$ cd /usr/local/spark
+$ ./sbin/start-all.sh
+```
+To stop the spark cluster, run the following command on master.
+```
+$ cd /usr/local/spark
+$ ./sbin/stop-all.sh
+```
+Check whether services have been started
+To check daemons on master and slaves, use the following command.
+```
+$ jps
+```
+## Spark Web UI
+Browse the Spark UI to know about worker nodes, running application, cluster resources.
+```
+Spark Master UI
+http://<MASTER-IP>:8080/
+Spark Application UI
+http://<MASTER_IP>:4040/
+```
