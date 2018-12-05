@@ -92,3 +92,8 @@ http://<MASTER-IP>:8080/
 Spark Application UI
 http://<MASTER_IP>:4040/
 ```
+## Use Jupyter in ubuntu
+In terminal:
+```
+jupyter notebook
+```
