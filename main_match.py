@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import matplotlib.image as mpimg
 import numpy as np
 from scipy.spatial import cKDTree
@@ -28,9 +29,9 @@ schema = StructType([
 
 time_start = time.time()
 
-file1 = open('~/python_code/test.txt','rb')
+file1 = open('test.txt','rb')
 results_dict = pickle.load(file1)
-file2 = open('~/python_code/input.txt','rb')
+file2 = open('input.txt','rb')
 input_dict = pickle.load(file2)
 data_list = list(results_dict.keys())
 stored_data = list(results_dict.values())
@@ -168,7 +169,7 @@ for i,test_path in enumerate(image_input_path):
     # plt.show()
     plt.savefig(test_name+'_'+data_name+'_'+'match'+match_index+'.jpg')
     df2.show()
-    break
+    
 df1.show()    
 #df2.show()
     #df1.show()
