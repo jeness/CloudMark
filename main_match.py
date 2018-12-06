@@ -15,11 +15,11 @@ from pyspark import SparkConf
 from pyspark.sql.types import *
 from pyspark.sql import SparkSession
 from pyspark.sql import SQLContext
-#spark = SparkSession.builder.appName('match_match').getOrCreate()
+spark = SparkSession.builder.appName('match_match').getOrCreate()
 conf = SparkConf().setAppName('myproject').setMaster('local[6]')
 #conf = SparkConf().setAppName('myproject')
 sc = SparkContext.getOrCreate(conf)
-spark = SparkSession.builder.appName('match_match').getOrCreate()
+#spark = SparkSession.builder.appName('match_match').getOrCreate()
 sqlContext = SQLContext(sc)
 schema = StructType([
     StructField('input image',StringType(),True),
