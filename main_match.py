@@ -1,62 +1,70 @@
 import matplotlib.pyplot as plt
-import glob
 import matplotlib.image as mpimg
 import numpy as np
 from scipy.spatial import cKDTree
 from skimage.feature import plot_matches
 from skimage.measure import ransac
 from skimage.transform import AffineTransform
-import tensorflow as tf
-import tensorflow_hub as hub
 import pickle
+import time
 
-file = open('feature.txt','rb')
-results_dict = pickle.load(file)
+import pyspark
+from pyspark import SparkContext
+from pyspark import SparkConf
+from pyspark.sql.types import *
+from pyspark.sql import SparkSession
+from pyspark.sql import SQLContext
+#spark = SparkSession.builder.appName('match_match').getOrCreate()
+conf = SparkConf().setAppName('myproject').setMaster('local[6]')
+#conf = SparkConf().setAppName('myproject')
+sc = SparkContext.getOrCreate(conf)
+spark = SparkSession.builder.appName('match_match').getOrCreate()
+sqlContext = SQLContext(sc)
+schema = StructType([
+    StructField('input image',StringType(),True),
+    StructField('stored image',StringType(),True),
+    StructField('matches',StringType(),True)
+])
+
+time_start = time.time()
+
+file1 = open('~/python_code/test.txt','rb')
+results_dict = pickle.load(file1)
+file2 = open('~/python_code/input.txt','rb')
+input_dict = pickle.load(file2)
 data_list = list(results_dict.keys())
-image_input_path = glob.glob('input/*.jpg')
+stored_data = list(results_dict.values())
+image_input_path = list(input_dict.keys())
+input_data = list(input_dict.values())
+# print(input_dict[image_input_path[0]])
+# location = input_data[0][0]
+# print(location)
 
-def image_input_fn(data_list = data_list):
-  filename_queue = tf.train.string_input_producer(
-      data_list, shuffle=False)
-  reader = tf.WholeFileReader()
-  _, value = reader.read(filename_queue)
-  image_tf = tf.image.decode_jpeg(value, channels=3)
-  return tf.image.convert_image_dtype(image_tf, tf.float32)
+# print(input_dict)
+#a = pd.DataFrame(input_dict)
+#print(a)
+#b = pd.DataFrame(results_dict)
+#print(b)
+# # ??value list ? data list ???index ???????
+# print(len(image_input_path))
+# a = input_dict[image_input_path[2]]
+# b = input_data[2]
+# print(a==b)
 
-tf.reset_default_graph()
-tf.logging.set_verbosity(tf.logging.FATAL)
+# # ??input_data ??????
+# locations_1, descriptors_1 = input_data[0]#input_dict[test_path]
+# num_features_1 = locations_1.shape[0]
+# # print(locations_1)
+# # print(descriptors_1)
+# # print(num_features_1)
+# locations_2, descriptors_2 = stored_data[0]
+# num_features_2 = locations_2.shape[0]
 
-m = hub.Module('https://tfhub.dev/google/delf/1')
 
-# The module operates on a single image at a time, so define a placeholder to
-# feed an arbitrary image in.
-image_placeholder = tf.placeholder(
-    tf.float32, shape=(None, None, 3), name='input_image')
-
-module_inputs = {
-    'image': image_placeholder,
-    'score_threshold': 100.0,
-    'image_scales': [0.25, 0.3536, 0.5, 0.7071, 1.0, 1.4142, 2.0],
-    'max_feature_num': 1000,
-}
-
-module_outputs = m(module_inputs, as_dict=True)
-
-image_input = image_input_fn(data_list=image_input_path)
-
-with tf.train.MonitoredSession() as sess:
-  input_dict = {}   # Stores th locations and their dexcriptors for each input image
-  for image_test_path in image_input_path:
-    input = sess.run(image_input)
-    print('Extracting locations and descriptors from %s' % image_test_path)
-    input_dict[image_test_path] = sess.run(
-        [module_outputs['locations'], module_outputs['descriptors']],
-        feed_dict={image_placeholder: input})
 
 #@title TensorFlow is not needed for this post-processing and visualization
 def match_images(results_dict, input_dict, image_1_path, image_2_path):
   distance_threshold = 0.8
-  print(image_2_path)
   # Read features.
   locations_1, descriptors_1 = input_dict[image_1_path]
   num_features_1 = locations_1.shape[0]
@@ -102,36 +110,73 @@ def match_images(results_dict, input_dict, image_1_path, image_2_path):
   # print('Found %d inliers' % sum(inliers))
   # return sum(inliers)
 
-for test_path in image_input_path:
+index = []
+count = 1
+
+df1=sqlContext.createDataFrame(sc.emptyRDD(),schema)
+for i,test_path in enumerate(image_input_path): 
+    # print(i,test_path)
     matches = []
     test_feature = []
     data_feature = []
     inliers = []
-    for data_path in data_list:
+    for data_path in data_list: # here to apply rdd may overlap rdd
         match_num, locations_1_to_use, locations_2_to_use, inlier = match_images(results_dict, input_dict, test_path, data_path)
         # print('has',match,'matches with',data_path)
         matches.append(match_num)
         test_feature.append(locations_1_to_use)
         data_feature.append(locations_2_to_use)
         inliers.append(inlier)
-    index = matches.index(max(matches))
-    print(test_path)
-    print(matches[index],data_list[index])
-    # print(inliers[index])
-
+    index.append(matches.index(max(matches)))
+    # print(test_path,matches[index[i]],data_list[index[i]])
+    # print(inliers[index[i]])
 
     _, ax = plt.subplots()
     img_1 = mpimg.imread(test_path)
-    img_2 = mpimg.imread(data_list[index])
-    inlier_idxs = np.nonzero(inliers[index])[0]
+    img_2 = mpimg.imread(data_list[index[i]])
+    inlier_idxs = np.nonzero(inliers[index[i]])[0]
     plot_matches(
       ax,
       img_1,
       img_2,
-      test_feature[index],
-      data_feature[index],
+      test_feature[index[i]],
+      data_feature[index[i]],
       np.column_stack((inlier_idxs, inlier_idxs)),
       matches_color='b')
     ax.axis('off')
     ax.set_title('DELF correspondences')
-    plt.show()
+    test_name = test_path.replace('/','').split('.')[0]
+    #test_name = test_path.split('.')
+    data_name = data_list[index[i]].replace('/','').split('.')[0]
+    match_index = str(matches[index[i]])
+    match_index_num = matches[index[i]]
+    outputRDD = sc.parallelize([(test_name,data_name,match_index)])
+    #sqlContext = SQLContext(sc)
+    #df = sqlContext.createDataFrame(outputRDD,schema)
+    #df.show()
+    print(type(test_name))
+    print(type(data_name))
+    print(type(match_index))
+    print(type(match_index_num))
+    
+    #if count == 1:
+    #    df1=sqlContext.createDataFrame(outputRDD,schema)
+    #    count=count-1
+    #else:
+    df2=sqlContext.createDataFrame(outputRDD,schema)
+    df1=df1.union(df2)
+    # plt.show()
+    plt.savefig(test_name+'_'+data_name+'_'+'match'+match_index+'.jpg')
+    df2.show()
+    break
+df1.show()    
+#df2.show()
+    #df1.show()
+    
+    
+
+
+time_end = time.time()
+print('time cost',time_end-time_start,'s')
+
+
