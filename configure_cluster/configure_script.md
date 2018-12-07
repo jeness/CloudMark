@@ -97,3 +97,22 @@ In terminal:
 ```
 jupyter notebook
 ```
+## Submit jobs
+spark-submit --master spark://master:7077 --total-executor-cores 4 ~/python_code/test.py
+
+## core number 
+# total core number = physical cpu number X every physical cpu core number
+# total logic processor number = physical cpu number X every physical cpu core number X Hyper-threading number
+
+# physical cpu number
+cat /proc/cpuinfo| grep "physical id"| sort| uniq| wc -l
+
+# every physical cpu core number
+cat /proc/cpuinfo| grep "cpu cores"| uniq
+
+# total logic processor number
+cat /proc/cpuinfo| grep "processor"| wc -l
+
+#submit job
+~/python_code$ ../spark/bin/spark-submit --master spark://10.142.0.4:7077 --executor-cores 4 ~/python_code/main_match.py
+
