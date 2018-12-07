@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+plt.switch_backend('agg')
 import matplotlib.image as mpimg
 import numpy as np
 from scipy.spatial import cKDTree
@@ -7,7 +8,24 @@ from skimage.measure import ransac
 from skimage.transform import AffineTransform
 import pickle
 import time
-import pandas as pd
+
+import pyspark
+from pyspark import SparkContext
+from pyspark import SparkConf
+from pyspark.sql.types import *
+from pyspark.sql import SparkSession
+from pyspark.sql import SQLContext
+spark = SparkSession.builder.appName('match_match').getOrCreate()
+conf = SparkConf().setAppName('myproject').setMaster('local[6]')
+#conf = SparkConf().setAppName('myproject')
+sc = SparkContext.getOrCreate(conf)
+#spark = SparkSession.builder.appName('match_match').getOrCreate()
+sqlContext = SQLContext(sc)
+schema = StructType([
+    StructField('input image',StringType(),True),
+    StructField('stored image',StringType(),True),
+    StructField('matches',StringType(),True)
+])
 
 time_start = time.time()
 
@@ -94,7 +112,10 @@ def match_images(results_dict, input_dict, image_1_path, image_2_path):
   # return sum(inliers)
 
 index = []
-for i,test_path in enumerate(image_input_path): # test input ????rdd ?? ??????rdd ????
+count = 1
+
+df1=sqlContext.createDataFrame(sc.emptyRDD(),schema)
+for i,test_path in enumerate(image_input_path): 
     # print(i,test_path)
     matches = []
     test_feature = []
@@ -107,7 +128,6 @@ for i,test_path in enumerate(image_input_path): # test input ????rdd ?? ??????rd
         test_feature.append(locations_1_to_use)
         data_feature.append(locations_2_to_use)
         inliers.append(inlier)
-    # index[i] = matches.index(max(matches))
     index.append(matches.index(max(matches)))
     # print(test_path,matches[index[i]],data_list[index[i]])
     # print(inliers[index[i]])
@@ -127,10 +147,35 @@ for i,test_path in enumerate(image_input_path): # test input ????rdd ?? ??????rd
     ax.axis('off')
     ax.set_title('DELF correspondences')
     test_name = test_path.replace('/','').split('.')[0]
+    #test_name = test_path.split('.')
     data_name = data_list[index[i]].replace('/','').split('.')[0]
     match_index = str(matches[index[i]])
-    plt.savefig(test_name+'_'+data_name+'_'+'match'+match_index+'.jpg')
+    match_index_num = matches[index[i]]
+    outputRDD = sc.parallelize([(test_name,data_name,match_index)])
+    #sqlContext = SQLContext(sc)
+    #df = sqlContext.createDataFrame(outputRDD,schema)
+    #df.show()
+    print(type(test_name))
+    print(type(data_name))
+    print(type(match_index))
+    print(type(match_index_num))
+    
+    #if count == 1:
+    #    df1=sqlContext.createDataFrame(outputRDD,schema)
+    #    count=count-1
+    #else:
+    df2=sqlContext.createDataFrame(outputRDD,schema)
+    df1=df1.union(df2)
     # plt.show()
+    plt.savefig(test_name+'_'+data_name+'_'+'match'+match_index+'.jpg')
+    df2.show()
+    
+df1.show()    
+#df2.show()
+    #df1.show()
+    
+    
+
 
 time_end = time.time()
 print('time cost',time_end-time_start,'s')
